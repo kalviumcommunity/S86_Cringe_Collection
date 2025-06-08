@@ -19,6 +19,8 @@
   },
   "homepage": "https://github.com/kalviumcommunity/S86_Cringe_Collection#readme",
   "dependencies": {
-    "express": "^5.1.0"
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.15.1"
   }
 }
