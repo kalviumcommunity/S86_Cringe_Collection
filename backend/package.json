@@ -1,0 +1,26 @@
+{
+  "name": "s86_cringe_collection",
+  "version": "1.0.0",
+  "description": "The Cringe Collection is a humorous and relatable web project that compiles awkward moments people commonly experience in everyday life — from social slip-ups to public transport mishaps. The goal is to create a fun, interactive platform where users can browse, contribute, and laugh about the shared awkwardness of human interaction.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalviumcommunity/S86_Cringe_Collection.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kalviumcommunity/S86_Cringe_Collection/issues"
+  },
+  "homepage": "https://github.com/kalviumcommunity/S86_Cringe_Collection#readme",
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "mongoose": "^8.16.1"
+  }
+}
