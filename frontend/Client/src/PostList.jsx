@@ -1,17 +1,19 @@
-export default function PostList({ posts, onEdit, onDelete }) {
+import React from "react";
+import PostCard from "./components/PostCard";
+
+const PostList = ({ posts, onEdit, onDelete }) => {
   return (
     <div>
-      <h2>All Cringe Posts</h2>
       {posts.map((post) => (
-        <div key={post.id}>
-          <h3>{post.title}</h3>
-          <p>{post.content}</p>
-          <p>By: {post.author} | Likes: {post.likes}</p>
-          <button onClick={() => onEdit(post)}>Edit</button>
-          <button onClick={() => onDelete(post.id)}>Delete</button>
-          <hr />
-        </div>
+        <PostCard
+          key={post._id}
+          post={post}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
       ))}
     </div>
   );
-}
+};
+
+export default PostList;
