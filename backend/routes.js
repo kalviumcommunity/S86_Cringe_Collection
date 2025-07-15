@@ -22,16 +22,28 @@ let posts = [
   }
 ];
 
-// CREATE
+//  CREATE
 router.post('/posts', (req, res) => {
   const { title, content, author, likes, tags } = req.body;
+
+  //  Validation
+  if (!title || !content || !author) {
+    return res.status(400).json({ error: "Title, content, and author are required." });
+  }
+  if (likes !== undefined && typeof likes !== "number") {
+    return res.status(400).json({ error: "Likes must be a number." });
+  }
+  if (tags && !Array.isArray(tags)) {
+    return res.status(400).json({ error: "Tags must be an array." });
+  }
+
   const newPost = {
     id: posts.length + 1,
     title,
     content,
     author,
-    likes,
-    tags,
+    likes: likes || 0,
+    tags: tags || [],
     createdAt: new Date()
   };
   posts.push(newPost);
@@ -43,29 +55,41 @@ router.get('/posts', (req, res) => {
   res.json(posts);
 });
 
-// READ ONE
+//  READ ONE
 router.get('/posts/:id', (req, res) => {
   const post = posts.find(p => p.id === parseInt(req.params.id));
   if (!post) return res.status(404).json({ error: 'Post not found' });
   res.json(post);
 });
 
-// UPDATE
+//  UPDATE
 router.put('/posts/:id', (req, res) => {
   const post = posts.find(p => p.id === parseInt(req.params.id));
   if (!post) return res.status(404).json({ error: 'Post not found' });
 
   const { title, content, author, likes, tags } = req.body;
-  if (title) post.title = title;
-  if (content) post.content = content;
-  if (author) post.author = author;
-  if (likes) post.likes = likes;
-  if (tags) post.tags = tags;
+
+  // Validation
+  if (!title || !content || !author) {
+    return res.status(400).json({ error: "Title, content, and author are required." });
+  }
+  if (likes !== undefined && typeof likes !== "number") {
+    return res.status(400).json({ error: "Likes must be a number." });
+  }
+  if (tags && !Array.isArray(tags)) {
+    return res.status(400).json({ error: "Tags must be an array." });
+  }
+
+  post.title = title;
+  post.content = content;
+  post.author = author;
+  post.likes = likes || 0;
+  post.tags = tags || [];
 
   res.json(post);
 });
 
-// DELETE
+//  DELETE
 router.delete('/posts/:id', (req, res) => {
   const index = posts.findIndex(p => p.id === parseInt(req.params.id));
   if (index === -1) return res.status(404).json({ error: 'Post not found' });
