@@ -9,9 +9,13 @@ export default function App() {
   const [editing, setEditing] = useState(null);
 
   const fetchPosts = async () => {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-    setPosts(data);
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      setPosts(data);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
   };
 
   useEffect(() => {
@@ -20,12 +24,12 @@ export default function App() {
 
   const handleSubmit = async (post) => {
     const method = editing ? "PUT" : "POST";
-    const url = editing ? `${API_URL}/${editing.id}` : API_URL;
+    const url = editing ? `${API_URL}/${editing._id}` : API_URL;
 
     await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(post)
+      body: JSON.stringify(post),
     });
 
     setEditing(null);
