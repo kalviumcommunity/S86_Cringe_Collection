@@ -1,101 +1,82 @@
 const express = require('express');
 const router = express.Router();
+const db = require('./db');
 
-let posts = [
-  {
-    id: 1,
-    title: "Awkward Zoom moment",
-    content: "Forgot camera was on!",
-    author: "kartheekreddy",
-    likes: 5,
-    tags: ["zoom", "class", "oops"],
-    createdAt: new Date()
-  },
-  {
-    id: 2,
-    title: "Wrong chat message",
-    content: "Sent meme to teacher instead of friend 😅",
-    author: "kartheekreddy",
-    likes: 7,
-    tags: ["meme", "fail"],
-    createdAt: new Date()
-  }
-];
-
-//  CREATE
+// Create a new post
 router.post('/posts', (req, res) => {
-  const { title, content, author, likes, tags } = req.body;
+  const { title, content, author, likes = 0, tags = "", created_by } = req.body;
 
-  //  Validation
-  if (!title || !content || !author) {
-    return res.status(400).json({ error: "Title, content, and author are required." });
-  }
-  if (likes !== undefined && typeof likes !== "number") {
-    return res.status(400).json({ error: "Likes must be a number." });
-  }
-  if (tags && !Array.isArray(tags)) {
-    return res.status(400).json({ error: "Tags must be an array." });
+  if (!title || !content || !author || !created_by) {
+    return res.status(400).json({ error: "Title, content, author, and created_by are required." });
   }
 
-  const newPost = {
-    id: posts.length + 1,
-    title,
-    content,
-    author,
-    likes: likes || 0,
-    tags: tags || [],
-    createdAt: new Date()
-  };
-  posts.push(newPost);
-  res.status(201).json(newPost);
+  const query = `INSERT INTO posts (title, content, author, likes, tags, created_by) VALUES (?, ?, ?, ?, ?, ?)`;
+  db.query(query, [title, content, author, likes, tags.toString(), created_by], (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.status(201).json({ id: result.insertId, title, content, author, likes, tags, created_by });
+  });
 });
 
-// READ ALL
+// Get all posts
 router.get('/posts', (req, res) => {
-  res.json(posts);
+  db.query('SELECT * FROM posts', (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
 });
 
-//  READ ONE
+// Get a single post by ID
 router.get('/posts/:id', (req, res) => {
-  const post = posts.find(p => p.id === parseInt(req.params.id));
-  if (!post) return res.status(404).json({ error: 'Post not found' });
-  res.json(post);
+  db.query('SELECT * FROM posts WHERE id = ?', [req.params.id], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (results.length === 0) return res.status(404).json({ error: 'Post not found' });
+    res.json(results[0]);
+  });
 });
 
-//  UPDATE
+// Update a post
 router.put('/posts/:id', (req, res) => {
-  const post = posts.find(p => p.id === parseInt(req.params.id));
-  if (!post) return res.status(404).json({ error: 'Post not found' });
+  const { title, content, author, likes = 0, tags = "", created_by } = req.body;
 
-  const { title, content, author, likes, tags } = req.body;
-
-  // Validation
-  if (!title || !content || !author) {
-    return res.status(400).json({ error: "Title, content, and author are required." });
-  }
-  if (likes !== undefined && typeof likes !== "number") {
-    return res.status(400).json({ error: "Likes must be a number." });
-  }
-  if (tags && !Array.isArray(tags)) {
-    return res.status(400).json({ error: "Tags must be an array." });
+  if (!title || !content || !author || !created_by) {
+    return res.status(400).json({ error: "Title, content, author, and created_by are required." });
   }
 
-  post.title = title;
-  post.content = content;
-  post.author = author;
-  post.likes = likes || 0;
-  post.tags = tags || [];
-
-  res.json(post);
+  const query = `
+    UPDATE posts 
+    SET title = ?, content = ?, author = ?, likes = ?, tags = ?, created_by = ?
+    WHERE id = ?
+  `;
+  db.query(query, [title, content, author, likes, tags.toString(), created_by, req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: "Post updated" });
+  });
 });
 
-//  DELETE
+// Delete a post
 router.delete('/posts/:id', (req, res) => {
-  const index = posts.findIndex(p => p.id === parseInt(req.params.id));
-  if (index === -1) return res.status(404).json({ error: 'Post not found' });
+  db.query('DELETE FROM posts WHERE id = ?', [req.params.id], (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Post not found' });
+    res.json({ message: "Post deleted" });
+  });
+});
 
-  const deleted = posts.splice(index, 1);
-  res.json({ message: "Post deleted", post: deleted[0] });
+// Get all users
+router.get('/users', (req, res) => {
+  db.query('SELECT * FROM users', (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+});
+
+// Get posts by a specific user
+router.get('/users/:id/posts', (req, res) => {
+  const userId = req.params.id;
+  db.query('SELECT * FROM posts WHERE created_by = ?', [userId], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
 });
 
 module.exports = router;
