@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import PostForm from "./PostForm";
 import PostList from "./PostList";
+import updatepost from "./components/updatepost";
 
 const API_URL = "http://localhost:3000/posts";
 
