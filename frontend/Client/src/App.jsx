@@ -1,100 +1,134 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import PostForm from "./PostForm";
 import PostList from "./PostList";
 
-const POSTS_API = "http://localhost:3000/posts";
-const USERS_API = "http://localhost:3000/users";
-const USER_POSTS_API = "http://localhost:3000/users"; // Will use /:id/posts
+const API_URL = "http://localhost:3000";
 
 export default function App() {
   const [posts, setPosts] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [selectedUserId, setSelectedUserId] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [username, setUsername] = useState("");
+  const [loggedInUser, setLoggedInUser] = useState(null);
 
-  // Fetch all users
-  const fetchUsers = async () => {
+  const fetchPosts = async () => {
     try {
-      const res = await fetch(USERS_API);
-      const data = await res.json();
-      setUsers(data);
-    } catch (err) {
-      console.error("Error fetching users:", err);
-    }
-  };
-
-  // Fetch all posts or posts by selected user
-  const fetchPosts = async (userId = null) => {
-    try {
-      const url = userId ? `${USER_POSTS_API}/${userId}/posts` : POSTS_API;
-      const res = await fetch(url);
+      const url = selectedUserId
+        ? `${API_URL}/users/${selectedUserId}/posts`
+        : `${API_URL}/posts`;
+      const res = await fetch(url, { credentials: "include" });
       const data = await res.json();
       setPosts(data);
     } catch (err) {
-      console.error("Error fetching posts:", err);
+      console.error("Fetch error:", err);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${API_URL}/users`);
+      const data = await res.json();
+      setUsers(data);
+    } catch (err) {
+      console.error("User fetch error:", err);
+    }
+  };
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetch(`${API_URL}/profile`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLoggedInUser(data.message);
+      }
+    } catch (err) {
+      console.error("Auth check failed", err);
     }
   };
 
   useEffect(() => {
     fetchUsers();
     fetchPosts();
-  }, []);
+    checkAuth();
+  }, [selectedUserId]);
 
-  // Handle form submission (create or update)
   const handleSubmit = async (post) => {
     const method = editing ? "PUT" : "POST";
-    const url = editing ? `${POSTS_API}/${editing.id}` : POSTS_API;
+    const url = editing
+      ? `${API_URL}/posts/${editing.id}`
+      : `${API_URL}/posts`;
 
-    const response = await fetch(url, {
+    await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(post),
     });
 
-    if (!response.ok) {
-      console.error("Failed to save post");
-      return;
-    }
-
     setEditing(null);
-    fetchPosts(selectedUserId);
+    fetchPosts();
   };
 
   const handleDelete = async (id) => {
-    await fetch(`${POSTS_API}/${id}`, { method: "DELETE" });
-    fetchPosts(selectedUserId);
+    await fetch(`${API_URL}/posts/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    fetchPosts();
   };
 
-  const handleUserChange = (e) => {
-    const userId = e.target.value;
-    setSelectedUserId(userId);
-    if (userId) {
-      fetchPosts(userId);
-    } else {
-      fetchPosts(); // all
-    }
+  const handleLogin = async () => {
+    await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ username }),
+    });
+    setUsername("");
+    checkAuth();
+  };
+
+  const handleLogout = async () => {
+    await fetch(`${API_URL}/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+    setLoggedInUser(null);
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
+    <div>
       <h1>Cringe Collection 🫣</h1>
 
-      {/* User Filter Dropdown */}
-      <select onChange={handleUserChange} value={selectedUserId || ""}>
-        <option value="">All Users</option>
-        {users.map((user) => (
-          <option key={user.id} value={user.id}>
-            {user.username}
+      {!loggedInUser ? (
+        <div>
+          <input
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <button onClick={handleLogin}>Login</button>
+        </div>
+      ) : (
+        <div>
+          <p>Welcome, {loggedInUser}</p>
+          <button onClick={handleLogout}>Logout</button>
+        </div>
+      )}
+
+      <select onChange={(e) => setSelectedUserId(e.target.value)} value={selectedUserId}>
+        <option value="">-- Filter by user --</option>
+        {users.map((u) => (
+          <option key={u.id} value={u.id}>
+            {u.username}
           </option>
         ))}
       </select>
 
-      <PostForm
-        onSubmit={handleSubmit}
-        currentPost={editing}
-        users={users}
-      />
-
+      <PostForm onSubmit={handleSubmit} currentPost={editing} />
       <PostList posts={posts} onEdit={setEditing} onDelete={handleDelete} />
     </div>
   );

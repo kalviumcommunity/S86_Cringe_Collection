@@ -1,11 +1,55 @@
 const express = require('express');
 const router = express.Router();
 const db = require('./db');
+const jwt = require('jsonwebtoken');
+const secret = 'your_jwt_secret_key'; // Change this in production
 
-// Create a new post
+// --- AUTH ROUTES --- //
+
+// LOGIN (JWT + Cookie)
+router.post('/login', (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ error: 'Username is required' });
+
+  // Token payload can include anything
+  const token = jwt.sign({ username }, secret, { expiresIn: '1d' });
+
+  res.cookie('token', token, {
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
+  });
+
+  res.json({ message: `Logged in as ${username}` });
+});
+
+// LOGOUT
+router.post('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ message: 'Logged out successfully' });
+});
+
+// Middleware to verify JWT
+function authenticateToken(req, res, next) {
+  const token = req.cookies.token;
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, secret, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+// Protected route (example)
+router.get('/profile', authenticateToken, (req, res) => {
+  res.json({ message: `Hello ${req.user.username}, you are authenticated.` });
+});
+
+
+// --- POST ROUTES --- //
+
 router.post('/posts', (req, res) => {
   const { title, content, author, likes = 0, tags = "", created_by } = req.body;
-
   if (!title || !content || !author || !created_by) {
     return res.status(400).json({ error: "Title, content, author, and created_by are required." });
   }
@@ -17,7 +61,6 @@ router.post('/posts', (req, res) => {
   });
 });
 
-// Get all posts
 router.get('/posts', (req, res) => {
   db.query('SELECT * FROM posts', (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -25,7 +68,6 @@ router.get('/posts', (req, res) => {
   });
 });
 
-// Get a single post by ID
 router.get('/posts/:id', (req, res) => {
   db.query('SELECT * FROM posts WHERE id = ?', [req.params.id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -34,10 +76,8 @@ router.get('/posts/:id', (req, res) => {
   });
 });
 
-// Update a post
 router.put('/posts/:id', (req, res) => {
   const { title, content, author, likes = 0, tags = "", created_by } = req.body;
-
   if (!title || !content || !author || !created_by) {
     return res.status(400).json({ error: "Title, content, author, and created_by are required." });
   }
@@ -53,7 +93,6 @@ router.put('/posts/:id', (req, res) => {
   });
 });
 
-// Delete a post
 router.delete('/posts/:id', (req, res) => {
   db.query('DELETE FROM posts WHERE id = ?', [req.params.id], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -62,7 +101,8 @@ router.delete('/posts/:id', (req, res) => {
   });
 });
 
-// Get all users
+// --- USERS --- //
+
 router.get('/users', (req, res) => {
   db.query('SELECT * FROM users', (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -70,7 +110,6 @@ router.get('/users', (req, res) => {
   });
 });
 
-// Get posts by a specific user
 router.get('/users/:id/posts', (req, res) => {
   const userId = req.params.id;
   db.query('SELECT * FROM posts WHERE created_by = ?', [userId], (err, results) => {
